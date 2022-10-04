@@ -1,0 +1,93 @@
+---
+title: "hw5"
+author: "David Jeong"
+format: pdf
+editor: visual
+---
+
+## Packages
+
+```{r load-packages}
+#| message: false
+
+
+# Load packages
+library(tidyverse)
+library(tidymodels)
+library(knitr)
+```
+
+## Data
+
+```{r load-data}
+#| message: false
+
+# Load Data
+money <- read_csv("data.csv")
+```
+
+## Regression Analysis
+
+```{r pred-1}
+# Filter data so that it represents the true amount of money that should have been collected (BRINK = 0)
+money_train <- money |>
+  filter(BRINK == 0)
+
+# Fit linear model
+money_fit <- linear_reg() |>
+  set_engine("lm") |>
+  fit(CON ~ CITY, data = money_train)
+
+# Neatly display model estimates to 3 digits
+tidy(money_fit) |>
+  kable(digits = 3)
+
+# Predict the amount of money that should have been collected for when time period = 21 (CITY = 6613)
+new_obs <- tibble(
+  CITY = 6613
+)
+
+predict(money_fit, new_obs)
+```
+
+```{r pred-2}
+# Filter data so that it represents money Brink's Inc. should have collected
+money_train_2 <- money |>
+  filter(BRINK == 1)
+
+# Fit linear model
+money_fit_2 <- linear_reg() |>
+  set_engine("lm") |>
+  fit(CON ~ CITY, data = money_train_2)
+
+# Neatly display model estimates to 3 digits
+tidy(money_fit_2) |>
+  kable(digits = 3)
+
+# Augment data
+money_Brink <- augment(money_fit_2$fit)
+
+# Estimate total amount of money that Brink's Inc. should have collected
+money_Brink |>
+  summarize(total_collect = sum(.fitted))
+```
+
+## Data Visualization
+
+```{r viz-CITY-CON}
+# Make BRINK categorical
+money <- money |>
+  mutate(BRINK = factor(BRINK))
+
+# Visualize data between CITY and CON
+ggplot(money, aes(x = CITY, y = CON, color = BRINK)) +
+  geom_point() +
+  labs(title = "Monthly collection by contractors vs. Monthly collections 
+      from 47 meters near city halls by city workers",
+       x = "Monthly collections from 47 meters near city halls by city workers
+       ($)",
+       y = "Monthly collections by contractors ($)") +
+  theme_bw()
+```
+
+We see a clear outlier at the very lower-left corner of the scatter plot shown, in which monthly collections by city workers is near \$4000 (to be exact, \$4150) and the monthly collections by contractors is \$794191.
